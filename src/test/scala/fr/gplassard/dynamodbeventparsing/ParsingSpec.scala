@@ -2,7 +2,10 @@ package fr.gplassard.dynamodbeventparsing
 
 import cats.data.Validated.Valid
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import fr.gplassard.dynamodbeventparsing.Model.Person
 import org.specs2.mutable.Specification
+
+import scala.collection.JavaConverters._
 
 class ParsingSpec extends Specification with Rules {
 
@@ -44,6 +47,26 @@ class ParsingSpec extends Specification with Rules {
       val attribute = new AttributeValue("true")
 
       booleanRule.validate(attribute).isInvalid must beTrue
+    }
+  }
+
+  "The person rule" should {
+    "extract the case class" in {
+      val dynamoDocument = Map("name" -> new AttributeValue("John Doe"), "age" -> new AttributeValue("42"), "lovesChocolate" -> new AttributeValue().withBOOL(true)).asJava
+
+      personRule.validate(dynamoDocument) must beEqualTo(Valid(Person("John Doe", 42, lovesChocolate = true)))
+    }
+
+    "fail if fields are incorrect" in {
+      val dynamoDocument = Map("name" -> new AttributeValue("John Doe"), "age" -> new AttributeValue("42.5"), "lovesChocolate" -> new AttributeValue().withBOOL(true)).asJava
+
+      personRule.validate(dynamoDocument).isInvalid must beTrue
+    }
+
+    "fail if fields are missing" in {
+      val dynamoDocument = Map("name" -> new AttributeValue("John Doe"), "age" -> new AttributeValue("42")).asJava
+
+      personRule.validate(dynamoDocument).isInvalid must beTrue
     }
   }
 }
