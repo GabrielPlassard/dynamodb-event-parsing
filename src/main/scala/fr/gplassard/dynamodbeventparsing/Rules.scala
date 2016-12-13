@@ -27,26 +27,21 @@ trait Rules extends GenericRules with ParsingRules {
     import Rules._
     ( (__ \ "name").read[String] ~
       (__ \ "age").read[Int] ~
-      (__ \ "lovesChocolate").read[Boolean]) (Person.apply)
+      (__ \ "lovesChocolate").read[Boolean])(Person.apply)
   }
 }
 
 object Rules {
-  implicit def pickInAttribute[II <: AttributeValue, O](p: Path)(implicit r: RuleLike[AttributeValue, O]): Rule[II, O] = {
-    def search(path: Path, attribute: AttributeValue): Option[AttributeValue] = path.path match {
-      case KeyPathNode(k) :: _ =>
-        Option(attribute.getM).flatMap(map => Option(map.get(k)))
-      case IdxPathNode(i) :: _ =>
-        Option(attribute.getL).flatMap(list => if (list.size() > i) Option(list.get(i)) else None)
-      case Nil => Some(attribute)
-    }
-
-    Rule[II, AttributeValue] { attribute =>
-      search(p, attribute) match {
-        case None =>
-          Invalid(Seq(Path -> Seq(ValidationError("error.required"))))
-        case Some(js) => Valid(js)
-      }
-    }.andThen(r)
+  private def search(path: Path, attribute: AttributeValue): Option[AttributeValue] = path.path match {
+    case KeyPathNode(k) :: _  => Option(attribute.getM).flatMap(map => Option(map.get(k)))
+    case IdxPathNode(i) :: _  => Option(attribute.getL).flatMap(list => if (list.size() > i) Option(list.get(i)) else None)
+    case Nil                  => Some(attribute)
   }
+
+  implicit def pickInAttribute[II <: AttributeValue, O](p: Path)(implicit r: RuleLike[AttributeValue, O]): Rule[II, O] = Rule[II, AttributeValue] { attribute =>
+    search(p, attribute) match {
+      case Some(js) => Valid(js)
+      case None => Invalid(Seq(Path -> Seq(ValidationError("error.required"))))
+    }
+  } andThen r
 }
