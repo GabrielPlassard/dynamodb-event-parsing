@@ -12,7 +12,10 @@ trait Rules extends GenericRules with ParsingRules {
     else Invalid(Seq(ValidationError("error.invalid", s"Expected String, got $attribute")))
   }
 
-  implicit val intRule: Rule[AttributeValue, Int] = strRule.andThen(intR)
+  implicit val intRule: Rule[AttributeValue, Int] = Rule.fromMapping[AttributeValue, String] { attribute =>
+    if (attribute.getN != null) Valid(attribute.getN)
+    else Invalid(Seq(ValidationError("error.invalid", s"Expected Number, got $attribute")))
+  } andThen intR
 
   implicit val booleanRule: Rule[AttributeValue, Boolean] = Rule.fromMapping { attribute =>
     if (attribute.getBOOL != null) Valid(attribute.getBOOL)
